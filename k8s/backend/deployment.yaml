@@ -27,7 +27,7 @@ spec:
         - name: gitlab-registry
       containers:
         - name: backend
-          image: registry.gitlab.com/MurdeRose/technologie_chmurowe_projekt/backend:latest
+          image: ghcr.io/MurdeRose/chmurowe/backend:latest
           imagePullPolicy: Always
 
           ports:
