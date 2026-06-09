@@ -41,12 +41,10 @@ jobs:
       - name: Setup kubeconfig
         run: |
           mkdir -p ~/.kube
-          echo "${{ secrets.KUBECONFIG }}" > ~/.kube/config
-          cat <<EOF > ~/.kube/config 
-          ${{ secrets.KUBECONFIG }} 
-          EOF 
-          chmod 600 ~/.kube/config 
+          echo "${{ secrets.KUBECONFIG_B64 }}" | base64 -d > ~/.kube/config
+          chmod 600 ~/.kube/config
           kubectl config view
+          kubectl get nodes
 
       - name: Debug kubeconfig
         run: |
