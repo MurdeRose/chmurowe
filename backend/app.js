@@ -1,7 +1,7 @@
 import cors from 'cors'
 import express from 'express';
 import db from './database.js';
-
+const redis = require('redis');
 
 const app = express()
 app.use(cors())
@@ -9,6 +9,20 @@ const port = 3000;
 
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json())
+
+const redisClient = redis.createClient({
+    url: 'redis://redis:6379'
+});
+
+redisClient.connect();
+
+app.get('/api/cache-test', async (req, res) => {
+    await redisClient.set('test', 'redis works');
+    const value = await redisClient.get('test');
+    res.json({
+        redis: value
+    });
+});
 
 
 app.get('/api/hello', (req, res) =>{

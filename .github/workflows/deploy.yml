@@ -2,23 +2,33 @@ name: CI/CD
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
+  pull_request:
+    branches: [main]
 
-permissions: 
-  contents: read 
-  packages: write
+env:
+  REGISTRY: ghcr.io
+  BACKEND_IMAGE: ghcr.io/murderose/chmurowe/backend:latest ./backend
+  FRONTEND_IMAGE: ghcr.io/murderose/chmurowe/frontend:latest ./frontend
 
 jobs:
-  deploy:
+  build-and-push:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - uses: docker/login-action@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
         with:
-          registry: ghcr.io
+          registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
@@ -38,27 +48,47 @@ jobs:
           test -f k8s/ingress.yaml
           test -f k8s/configmap.yaml
 
-      - name: Setup kubeconfig
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    if: github.event_name == 'push'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create kind cluster
+        uses: helm/kind-action@v1
+
+      - name: Validate manifests
         run: |
-          mkdir -p ~/.kube
-          echo "${{ secrets.KUBECONFIG_B64 }}" | base64 -d > ~/.kube/config
-          chmod 600 ~/.kube/config
-          kubectl config view
-          kubectl get nodes
+          kubectl apply --dry-run=client -f k8s/namespace.yaml
+          kubectl apply --dry-run=client -f k8s/secret.yaml
+          kubectl apply --dry-run=client -f k8s/configmap.yaml
+          kubectl apply --dry-run=client -f k8s/postgres/
+          kubectl apply --dry-run=client -f k8s/backend/
+          kubectl apply --dry-run=client -f k8s/frontend/
+          kubectl apply --dry-run=client -f k8s/ingress.yaml
+          kubectl apply --dry-run=client -f k8s/pdb.yaml
 
-      - name: Debug kubeconfig
+      - name: Apply manifests
         run: |
-          mkdir -p ~/.kube
-          echo "${{ secrets.KUBECONFIG }}" > ~/.kube/config
-          cat ~/.kube/config
-          kubectl config view
+          kubectl apply -f k8s/namespace.yaml
+          kubectl apply -f k8s/secret.yaml
+          kubectl apply -f k8s/configmap.yaml
+          kubectl apply -f k8s/postgres/
+          kubectl apply -f k8s/backend/
+          kubectl apply -f k8s/frontend/
+          kubectl apply -f k8s/pdb.yaml
 
-      - name: Deploy
+      - name: Check rollout
         run: |
-          kubectl apply -f k8s/
+          kubectl rollout status deployment/postgres -n animal-help-app --timeout=180s
+          kubectl rollout status deployment/backend -n animal-help-app --timeout=180s
+          kubectl rollout status deployment/frontend -n animal-help-app --timeout=180s
 
-          kubectl rollout restart deployment/backend -n myapp
-          kubectl rollout restart deployment/frontend -n myapp
-
-          kubectl rollout status deployment/backend -n myapp
-          kubectl rollout status deployment/frontend -n myapp
+      - name: Verify backend health
+        run: |
+          kubectl port-forward -n animal-help-app service/backend-service 3001:3001 &
+          sleep 5
+          curl -f http://localhost:3001/healthz
