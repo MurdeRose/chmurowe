@@ -1,0 +1,42 @@
+services:
+  frontend:
+    build: ./frontend
+    ports:
+      - "8080:80"
+    networks:
+      - project-network
+    volumes:
+      - ./frontend/static:/usr/share/nginx/html/:ro
+  backend:
+    build: ./backend
+    ports: 
+      - "3000:3000"
+    environment:
+      - DB_HOST=db
+      - DB_USER=user
+      - DB_PASSWORD=pass
+      - DB_NAME=mydb
+    depends_on:
+      - db
+    volumes:
+      - ./backend:/app
+    networks:
+      - project-network
+  db:
+    image: postgres:14-alpine
+    environment:
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=pass
+      - POSTGRES_DB=mydb
+    networks:
+      - project-network
+    volumes:
+      - db-data:/var/lib/postgresql/data
+      - ./init-db:/docker-entrypoint-initdb.d
+
+
+volumes:
+  db-data:
+
+networks:
+  project-network:
