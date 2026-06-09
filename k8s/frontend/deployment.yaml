@@ -17,11 +17,9 @@ spec:
         app: frontend
 
     spec:
-      imagePullSecrets:
-        - name: gitlab-registry
       containers:
         - name: frontend
-          image: ghcr.io/MurdeRose/chmurowe/frontend:latest
+          image: ghcr.io/murderose/chmurowe/frontend:latest
           imagePullPolicy: Always
 
           ports:

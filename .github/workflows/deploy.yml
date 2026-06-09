@@ -20,13 +20,13 @@ jobs:
 
       - name: Build images
         run: |
-          docker build -t ghcr.io/${{ github.repository }}/backend:latest ./backend
-          docker build -t ghcr.io/${{ github.repository }}/frontend:latest ./frontend
+          docker build -t ghcr.io/murderose/chmurowe/backend:latest ./backend
+          docker build -t ghcr.io/murderose/chmurowe/frontend:latest ./frontend
 
       - name: Push images
         run: |
-          docker push ghcr.io/${{ github.repository }}/backend:latest
-          docker push ghcr.io/${{ github.repository }}/frontend:latest
+          docker push ghcr.io/murderose/chmurowe/backend:latest
+          docker push ghcr.io/murderose/chmurowe/frontend:latest
 
       - name: Validate manifests
         run: kubectl apply --dry-run=client -f k8s/
