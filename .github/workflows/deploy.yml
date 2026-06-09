@@ -42,6 +42,11 @@ jobs:
         run: |
           mkdir -p ~/.kube
           echo "${{ secrets.KUBECONFIG }}" > ~/.kube/config
+          cat <<EOF > ~/.kube/config 
+          ${{ secrets.KUBECONFIG }} 
+          EOF 
+          chmod 600 ~/.kube/config 
+          kubectl config view
 
       - name: Debug kubeconfig
         run: |
