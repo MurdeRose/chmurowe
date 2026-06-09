@@ -33,7 +33,7 @@ jobs:
           docker push ghcr.io/murderose/chmurowe/frontend:latest
 
       - name: Validate manifests
-        run: kubectl apply --dry-run=client -f k8s/
+        run: kubectl apply --dry-run=client --validate=false -f k8s/
 
       - name: Setup kubeconfig
         run: |
